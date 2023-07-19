@@ -1,0 +1,22 @@
+version: "1.0"
+
+services:
+  postgres:
+    image: postgres:14
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "23123:23123"
+    expose:
+      - "23123"
+    environment:
+      POSTGRES_USER: "gozin"
+      POSTGRES_PASSWORD: "gozin#1234"
+      POSTGRES_DB: "gozindb"
+    logging:
+      options:
+        max-size: "10m"
+    command: [ "postgres", "-c", "log_statement=all", "-p", "23123"]
+
+volumes:
+  postgres_data:
