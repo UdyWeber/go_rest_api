@@ -32,7 +32,15 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	person.Id = newHash
 	state.Set(newHash, person)
 
-	fmt.Fprintf(w, "Created Person %+v", person)
+	jsonData, err := json.Marshal(person)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonData)
 }
 
 func GetAllUsers(w http.ResponseWriter, r *http.Request) {

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Go WebSocket Tutorial</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+  </head>
+  <body>
+    <h1>Person Information</h1>
+    <form action="/submit" method="post" id="person_form">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required><br>
+
+        <label for="age">Age:</label>
+        <input type="number" id="age" name="age" required><br>
+
+        <label for="description">Description:</label><br>
+        <textarea id="description" name="description" rows="4" cols="50" required></textarea><br>
+
+        <input id="submitButton" type="submit" value="Submit">
+    </form>
+    <br><br>
+
+    <div id="people">
+
+    </div>
+
+    <br><br>
+
+    <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+            <!-- Chat messages will be dynamically added here -->
+        </div>
+        <div class="chat-input">
+            <input type="text" id="messageInput" placeholder="Type your message...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+
+        const broadcastChannel = new BroadcastChannel('chat_channel');
+        const server = "127.0.0.1:8213";
+        const people_view = document.querySelector('#people');
+        const form = document.querySelector('#person_form');
+
+        let socket = new WebSocket(`ws://${server}/ws`);
+        console.log("Attempting Connection...");
+
+        var button = document.querySelector("#submitButton");
+
+        const name = document.querySelector("#name");
+        const age = document.querySelector("#age");
+        const description = document.querySelector("#description");
+        
+        form.addEventListener("submit", function(e){
+            e.preventDefault();
+            var formData = {
+                name: name.value,
+                age: parseInt(age.value),
+                description: description.value
+            };
+            
+            var requestData = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            }
+
+            var url = `http://${server}/user/create`
+
+            fetch(url, requestData).then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                response.json().then(responseData => {
+                    console.log(responseData);
+                    people_view.innerHTML = `${people_view.innerHTML}<br>${JSON.stringify(responseData)}`;
+                })
+                
+            }).catch(e => {
+                console.log(e);
+            })
+        })
+
+        function fetchCards() {
+            var url = `http://${server}/user/all`
+
+            fetch(url).then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                
+                response.json().then(responseData => {
+                    responseData.forEach(card => {
+                        people_view.innerHTML = `${people_view.innerHTML}<br>${JSON.stringify(card)}`;
+                    })
+                })
+            })
+        }
+        
+        fetchCards();
+
+        socket.onmessage = function(event) {
+            const message = event.data;
+            displayMessage(message);
+        };
+
+        function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+
+            if (message !== '') {
+                socket.send(message);
+                messageInput.value = '';
+            }
+        }
+
+        function displayMessage(message) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageElement = document.createElement('p');
+            messageElement.textContent = message;
+            chatMessages.appendChild(messageElement);
+        }
+
+        socket.onopen = () => {
+            console.log("Successfully Connected");
+        };
+        
+        socket.onclose = event => {
+            console.log("Socket Closed Connection: ", event);
+            socket.send("Client Closed!")
+        };
+
+        socket.onerror = error => {
+            console.log("Socket Error: ", error);
+        };
+
+    </script>
+  </body>
+</html>
